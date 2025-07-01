@@ -7,7 +7,6 @@ A Streamlit app that allows you to:
 ✅ Ask questions about video content using Groq LLaMA 3 (RAG pipeline)  
 ✅ Live token streaming for smooth user experience  
 ✅ Download embeddings for reuse  
-✅ Light/Dark mode toggle
 
 ## 🚀 Run Locally
 ```bash
