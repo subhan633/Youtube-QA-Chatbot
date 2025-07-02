@@ -5,6 +5,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from groq import Groq
 from dotenv import load_dotenv
+from urllib.parse import urlparse, parse_qs
 import os
 import time
 import pickle
@@ -21,6 +22,18 @@ os.makedirs("saved_embeddings", exist_ok=True)
 def get_transcript(video_id):
     transcript = YouTubeTranscriptApi.get_transcript(video_id)
     return " ".join([item["text"] for item in transcript])
+
+# Helper to extract YouTube video ID reliably
+def extract_video_id(url_or_id):
+    if len(url_or_id) == 11 and '/' not in url_or_id:
+        return url_or_id  # looks like a raw ID
+    parsed_url = urlparse(url_or_id)
+    if parsed_url.hostname in ['youtu.be']:
+        return parsed_url.path[1:]
+    if parsed_url.hostname in ['www.youtube.com', 'youtube.com']:
+        query = parse_qs(parsed_url.query)
+        return query.get('v', [None])[0]
+    return None
 
 def split_transcript(transcript):
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
@@ -74,30 +87,33 @@ if st.session_state.vectorstore is None:
     if st.button("Fetch Transcript and Prepare Embeddings"):
         if video_input:
             try:
-                video_id = video_input.split("v=")[-1] if "watch?v=" in video_input else video_input
-                embed_path = f"saved_embeddings/{video_id}.pkl"
-
-                if os.path.exists(embed_path):
-                    with open(embed_path, "rb") as f:
-                        st.session_state.vectorstore = pickle.load(f)
-                    st.success("✅ Loaded saved embeddings for this video.")
+                video_id = extract_video_id(video_input)
+                if not video_id:
+                    st.error("❌ Could not extract a valid video ID from the input. Please check your URL or ID.")
                 else:
-                    with st.spinner("Fetching transcript and preparing embeddings..."):
-                        transcript = get_transcript(video_id)
-                        chunks = split_transcript(transcript)
-                        vectorstore = embed_and_store(chunks)
+                    embed_path = f"saved_embeddings/{video_id}.pkl"
 
-                        # Save for session memory
-                        with open(embed_path, "wb") as f:
-                            pickle.dump(vectorstore, f)
+                    if os.path.exists(embed_path):
+                        with open(embed_path, "rb") as f:
+                            st.session_state.vectorstore = pickle.load(f)
+                        st.success("✅ Loaded saved embeddings for this video.")
+                    else:
+                        with st.spinner("Fetching transcript and preparing embeddings..."):
+                            transcript = get_transcript(video_id)
+                            chunks = split_transcript(transcript)
+                            vectorstore = embed_and_store(chunks)
 
-                        st.session_state.vectorstore = vectorstore
+                            # Save for session memory
+                            with open(embed_path, "wb") as f:
+                                pickle.dump(vectorstore, f)
 
-                    st.success("✅ Video processed and embeddings saved! Now you can chat below.")
+                            st.session_state.vectorstore = vectorstore
+
+                        st.success("✅ Video processed and embeddings saved! Now you can chat below.")
             except Exception as e:
                 st.error(f"❌ Error: {e}")
         else:
-            st.warning("Please paste a YouTube URL or video ID before clicking the button.")
+            st.warning("⚠️ Please paste a YouTube URL or video ID before clicking the button.")
 
 # Download embeddings button
 if st.session_state.vectorstore is not None:
