@@ -70,8 +70,8 @@ def rag_qa(query, vectorstore):
     return response
 
 # Streamlit page setup
-st.set_page_config(page_title="🎬 YouTube RAG Chatbot", page_icon="🤖")
-st.title("🎬 YouTube RAG Chatbot 🤖")
+st.set_page_config(page_title="🎬 YouTube Q&A Chatbot", page_icon="🤖")
+st.title("🎬 YouTube Q&A Chatbot 🤖")
 
 # Session state
 if "vectorstore" not in st.session_state:
