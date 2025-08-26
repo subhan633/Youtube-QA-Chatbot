@@ -1,0 +1,6 @@
+__pycache__
+saved_embeddings
+venv
+.env
+test.py
+testApi.py
