@@ -6,6 +6,5 @@ faiss-cpu
 sentence-transformers
 groq
 python-dotenv
-pickle5
 pypickle
 langchain
